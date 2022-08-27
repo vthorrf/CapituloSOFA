@@ -1,0 +1,45 @@
+model {
+    ### Estimação da Função Ótima
+    for ( i in 1:n ) {
+      y[i]    ~ dnorm( pred[i] , err )
+      pred[i] <- b0 + sum(Beta[1:nk] * X[i,1:nk]) + u[i]
+    ## Medida Derivada do Modelo SOFA
+      u[i]      <- exp( Um[i,2] )
+    ## Modelo 2PLM para a Coop-Comp
+      # Resposta à Coop-Comp
+	Abil[i]   <- Um[i,1]
+      for (j in 1:Nitem) {
+        scale[i,j] ~ dbinom( Pr[i,j] , 4 )
+        Pr[i,j]    <- ilogit( Disc[j] * ( Abil[i] - Diff[j] ) )
+      }
+    ## Overall
+      Um[i,1:2] ~ dmnorm( Mu[1:2] , ICovMat[1:2,1:2] )
+    }
+    ICovMat ~ dscaled.wishart( S[1:2], 3 )
+    for ( i in 1:2 ) {
+      Mu[i] <- 0
+	S[i] ~ dgamma( 1e-2, 1e-2 )
+    }
+    ## Erro da função ótima 
+    err  ~ dgamma( 1e-2, 1e-2 )
+
+    ### Regression parameters
+    # Intercepto
+    b0 ~ dnorm( 0, sgm0 )
+    # Slopes
+    for (l in 1:nk) {
+      Beta[l] ~ ddexp( muT, tau )
+    }
+    # Quantidade de regularização
+    muT    ~ dnorm( 0, 1 )
+    tau    ~ dgamma( 1e-2, 1e-2 )
+    # Incerteza do intercepto
+    sgm0   ~ dgamma( 1e-2, 1e-2 )
+
+    ### Dificuldade e Discriminação da Coop-Comp latente
+    for ( j in 1:Nitem ) {
+      Diff[j] ~ dnorm( 0, 1 )
+      Disc[j] ~ dlnorm( 0, 1 )
+      #loads[j] <- Disc[j]/sqrt(3.29+(Disc[j]^2))
+    }
+}
